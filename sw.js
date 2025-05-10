@@ -1,10 +1,10 @@
-const CACHE_NAME = 'stirnraten-cache-v1.4'; // Increment version for updates
+const CACHE_NAME = 'stirnraten-cache-v1.5'; // Increment version for updates
 const URLS_TO_CACHE = [
   './', // Represents the root of the PWA's scope (e.g., /Stirnraten/)
   './index.html',
   './css/style.css',
   './js/app.js',
-  './js/gameData.js',
+  './js/data.js',
   './audio/beep.mp3',
   './audio/correct.mp3',
   './audio/skip.mp3',

@@ -45,11 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let motionPermissionGranted = false;
     let currentDeviceOrientationListener = null;
     
-    let tiltState; 
-    const TILT_THRESHOLD_DOWN = 75; 
-    const TILT_THRESHOLD_UP = -75;  
-    const NEUTRAL_ZONE_BUFFER = 20; 
-    const HARDWARE_COOLDOWN_MS = 250; 
+    let tiltState = 'WAITING_FOR_TILT'; 
+    const TILT_THRESHOLD_DOWN = 85; 
+    const TILT_THRESHOLD_UP = -85;  
+    const NEUTRAL_ZONE_BUFFER = 30; 
+    const HARDWARE_COOLDOWN_MS = 500; 
 
     function showScreen(screenName) {
         Object.values(screens).forEach(screen => screen.classList.remove('active'));
@@ -269,52 +269,85 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleTilt(event) {
         const beta = event.beta;
+        
+        // Debug logging for tilt angles and state
+        if (Math.abs(beta) > 5) {
+            console.log(`Current beta: ${beta.toFixed(1)}°, State: ${tiltState}`);
+        }
 
         switch (tiltState) {
             case 'WAITING_FOR_TILT':
-                if (currentWordIndex >= wordList.length) break; 
+                // Only process if we have words left
+                if (currentWordIndex >= wordList.length) {
+                    console.log('No more words to process');
+                    break;
+                }
 
+                // Check for significant tilts beyond thresholds
                 if (beta > TILT_THRESHOLD_DOWN) {
-                    console.log(`WAITING_FOR_TILT: Tilt DOWN for: ${wordList[currentWordIndex]}`);
+                    // CORRECT - Tilt forward/down
+                    console.log(`✓ CORRECT: Tilt DOWN detected (${beta.toFixed(1)}°) for: ${wordList[currentWordIndex]}`);
+                    
+                    // Update score and record word
                     score++;
                     correctWords.push(wordList[currentWordIndex]);
-                    try { audio.correct.currentTime = 0; audio.correct.play(); } catch(e) { console.warn("Audio play failed for correct sound:", e); }
+                    
+                    // Provide feedback
+                    try { 
+                        audio.correct.currentTime = 0; 
+                        audio.correct.play(); 
+                    } catch(e) { 
+                        console.warn("Audio play failed for correct sound:", e); 
+                    }
                     flashScreenFeedback('correct');
                     
+                    // Change state and set up next word
                     tiltState = 'ACTION_TAKEN_COOLDOWN';
-                    console.log(`Transitioning to ACTION_TAKEN_COOLDOWN (Correct)`);
+                    console.log(`State → ACTION_TAKEN_COOLDOWN (Correct)`);
 
                     setTimeout(() => {
                         currentWordIndex++; 
                         displayNextWord(); 
                         tiltState = 'WAITING_FOR_NEUTRAL_RETURN';
-                        console.log(`ACTION_TAKEN_COOLDOWN (Correct) finished. Displayed next word. Transitioning to WAITING_FOR_NEUTRAL_RETURN.`);
+                        console.log(`State → WAITING_FOR_NEUTRAL_RETURN (after Correct)`);
                     }, HARDWARE_COOLDOWN_MS);
 
                 } else if (beta < TILT_THRESHOLD_UP) {
-                    console.log(`WAITING_FOR_TILT: Tilt UP for: ${wordList[currentWordIndex]}`);
-                    try { audio.skip.currentTime = 0; audio.skip.play(); } catch(e) { console.warn("Audio play failed for skip sound:", e); }
+                    // SKIP - Tilt backward/up
+                    console.log(`✗ SKIP: Tilt UP detected (${beta.toFixed(1)}°) for: ${wordList[currentWordIndex]}`);
+                    
+                    // Provide feedback
+                    try { 
+                        audio.skip.currentTime = 0; 
+                        audio.skip.play(); 
+                    } catch(e) { 
+                        console.warn("Audio play failed for skip sound:", e); 
+                    }
                     flashScreenFeedback('skip');
 
+                    // Change state and set up next word
                     tiltState = 'ACTION_TAKEN_COOLDOWN';
-                    console.log(`Transitioning to ACTION_TAKEN_COOLDOWN (Skip)`);
+                    console.log(`State → ACTION_TAKEN_COOLDOWN (Skip)`);
 
                     setTimeout(() => {
                         currentWordIndex++; 
                         displayNextWord();
                         tiltState = 'WAITING_FOR_NEUTRAL_RETURN';
-                        console.log(`ACTION_TAKEN_COOLDOWN (Skip) finished. Displayed next word. Transitioning to WAITING_FOR_NEUTRAL_RETURN.`);
+                        console.log(`State → WAITING_FOR_NEUTRAL_RETURN (after Skip)`);
                     }, HARDWARE_COOLDOWN_MS);
                 }
                 break;
 
             case 'ACTION_TAKEN_COOLDOWN':
+                // Do nothing during cooldown, waiting for timeout to complete
                 break;
 
             case 'WAITING_FOR_NEUTRAL_RETURN':
+                // Only transition back to WAITING_FOR_TILT when device returns to neutral position
                 if (Math.abs(beta) < NEUTRAL_ZONE_BUFFER) { 
-                    console.log(`WAITING_FOR_NEUTRAL_RETURN: Phone returned to neutral. Transitioning to WAITING_FOR_TILT.`);
+                    console.log(`✓ NEUTRAL: Phone returned to neutral position (${beta.toFixed(1)}°)`);
                     tiltState = 'WAITING_FOR_TILT';
+                    console.log(`State → WAITING_FOR_TILT (ready for next action)`);
                 }
                 break;
         }

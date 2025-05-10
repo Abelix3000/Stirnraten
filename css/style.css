@@ -20,15 +20,23 @@
 
 body {
     font-family: var(--font-family);
-    background-color: var(--background-color);
+    background-color: var(--primary-color); /* Changed from background-color to match app theme */
     color: var(--dark-text-color);
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    min-width: 100vw;
+    margin: 0;
+    padding: 0;
     text-align: center;
     overflow: hidden; /* Prevent scrollbars during transitions or if content is too big */
     -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+    position: fixed; /* Prevent any scrolling */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 .screen {
@@ -38,11 +46,11 @@ body {
     align-items: center;
     padding: 20px;
     width: 100%;
-    max-width: 600px; /* Max width for larger screens, but it's mobile first */
-    min-height: 80vh; /* Ensure screen content is visible */
-    background-color: var(--card-background);
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    max-width: 100vw; /* Fill the entire width */
+    height: 100vh; /* Fill the entire height */
+    background-color: var(--primary-color); /* Match the body background */
+    border-radius: 0; /* Remove rounded corners for fullscreen */
+    box-shadow: none; /* Remove shadow for fullscreen */
 }
 
 .screen.active {
