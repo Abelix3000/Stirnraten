@@ -190,7 +190,10 @@ document.addEventListener('DOMContentLoaded', () => {
         showScreen('countdown');
         let countdown = 3;
         displays.countdownTimer.textContent = countdown;
-        try { audio.countdown.play(); } catch(e) { console.warn("Audio play failed for initial countdown sound:", e); } // Play once at the start
+        try { 
+            audio.countdown.currentTime = 0;
+            audio.countdown.play(); 
+        } catch(e) { console.warn("Audio play failed for initial countdown sound:", e); }
         
         // Clear any existing interval to prevent multiple countdowns
         if(timerInterval) clearInterval(timerInterval);
@@ -199,10 +202,14 @@ document.addEventListener('DOMContentLoaded', () => {
             countdown--;
             displays.countdownTimer.textContent = countdown;
             if (countdown > 0) {
-                try { audio.countdown.play(); } catch(e) { console.warn("Audio play failed for countdown interval sound:", e); } // Play on each subsequent second
+                try { 
+                    audio.countdown.currentTime = 0;
+                    audio.countdown.play(); 
+                } catch(e) { console.warn("Audio play failed for countdown interval sound:", e); }
             } else {
                 clearInterval(timerInterval);
                 timerInterval = null; // Good practice to nullify cleared interval IDs
+                console.log("Countdown finished, starting game.");
                 startGame();
             }
         }, 1000);
@@ -256,7 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
             timeLeft--;
             updateGameTimerDisplay();
             if (timeLeft <= 0) {
-                endGame(); // endGame will clear this interval too
+                console.log("Time is up, calling endGame.");
+                endGame(); // This should be the primary way endGame is called
             }
         }, 1000);
         startDeviceMotionListener(); // Start listening for tilts
@@ -270,15 +278,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function displayNextWord() {
+        console.log(`displayNextWord called. Index: ${currentWordIndex}, Wordlist length: ${wordList.length}`);
         if (currentWordIndex < wordList.length) {
-            displays.word.textContent = wordList[currentWordIndex];
+            const word = wordList[currentWordIndex];
+            console.log(`Displaying word: ${word}`);
+            displays.word.textContent = word;
             actionTakenForCurrentWord = false; // Reset action flag for the new word
             currentWordIndex++; // Increment to get the NEXT word next time
         } else {
             displays.word.textContent = "Alle Wörter gespielt!";
+            console.log("All words played.");
             if (timeLeft > 0) { // If time still left but words ran out
                 stopDeviceMotionListener(); // No more words to guess
             }
+            // If all words are played AND there's still time, some games might auto-end.
+            // Or, just let the timer run out. For now, stopping listener is fine.
+            // If you want to end the game immediately when words run out: endGame();
         }
     }
     
@@ -357,7 +372,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     correctWords.push(wordList[currentWordIndex]); // Use currentWordIndex before it's incremented by displayNextWord
                     try { audio.correct.play(); } catch(e) { console.warn("Audio play failed for correct sound:", e); }
                     flashScreenFeedback('correct');
+                    console.log(`Correct action for: ${wordList[currentWordIndex]}. Cooldown starting.`);
                     setTimeout(() => {
+                        console.log("Cooldown ended. Calling displayNextWord.");
                         actionTakenForCurrentWord = false; // Reset before next word and cooldown end
                         displayNextWord();
                         isActionOnCooldown = false;
@@ -368,7 +385,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     isActionOnCooldown = true;
                     try { audio.skip.play(); } catch(e) { console.warn("Audio play failed for skip sound:", e); }
                     flashScreenFeedback('skip');
+                    console.log(`Skip action for: ${wordList[currentWordIndex]}. Cooldown starting.`);
                     setTimeout(() => {
+                        console.log("Cooldown ended. Calling displayNextWord.");
                         actionTakenForCurrentWord = false; // Reset before next word and cooldown end
                         displayNextWord();
                         isActionOnCooldown = false;
@@ -385,6 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function endGame() {
+        console.log("endGame function called.");
         stopDeviceMotionListener();
         if (wakeLock) {
             wakeLock.release().then(() => {
@@ -419,6 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
             li.textContent = "Keine Begriffe richtig erraten.";
             displays.correctWordsList.appendChild(li);
         }
+        console.log("Showing summary screen.");
         showScreen('summary');
     }
 
