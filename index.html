@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Stirnraten Deluxe</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4A90E2">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+</head>
+<body>
+    <div id="start-screen" class="screen active">
+        <h1>Stirnraten Deluxe</h1>
+        <div id="category-buttons">
+            <!-- Categories will be populated here -->
+        </div>
+        <button id="random-all-btn" class="btn btn-secondary">Zufällig aus allen</button>
+        <p class="permission-request-info">Für das Spiel wird Zugriff auf die Bewegungssensoren benötigt.</p>
+        <button id="request-permission-btn" class="btn">Bewegungssensoren erlauben</button>
+    </div>
+
+    <div id="timer-selection-screen" class="screen">
+        <h2>Zeitlimit wählen für <span id="selected-category-name"></span>:</h2>
+        <div class="timer-options">
+            <button class="btn timer-btn" data-time="30">30 Sek.</button>
+            <button class="btn timer-btn" data-time="60">60 Sek.</button>
+            <button class="btn timer-btn" data-time="90">90 Sek.</button>
+        </div>
+        <button id="back-to-categories-btn" class="btn btn-secondary">Zurück zur Kategorieauswahl</button>
+    </div>
+
+    <div id="countdown-screen" class="screen">
+        <p id="initial-orientation-instruction">Handy waagerecht an die Stirn halten!</p>
+        <div id="countdown-timer">Bereit?</div>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div id="game-timer-display">00:00</div>
+        <div id="word-display">WORT</div>
+        <div class="game-instructions">
+            <p>RICHTIG: Handy nach UNTEN kippen</p>
+            <p>PASSIEREN: Handy nach OBEN kippen</p>
+        </div>
+    </div>
+
+    <div id="summary-screen" class="screen">
+        <h2>Zeit um!</h2>
+        <h3>Erratene Begriffe:</h3>
+        <ul id="correct-words-list">
+            <!-- Correct words will be listed here -->
+        </ul>
+        <p>Punkte: <span id="final-score">0</span></p>
+        <button id="play-again-btn" class="btn">Neue Runde (gleiche Kat.)</button>
+        <button id="change-category-btn" class="btn btn-secondary">Andere Kategorie wählen</button>
+    </div>
+
+    <!-- Audio elements -->
+    <audio id="audio-countdown" src="audio/countdown_tick.mp3" preload="auto"></audio>
+    <audio id="audio-correct" src="audio/correct_answer.mp3" preload="auto"></audio>
+    <audio id="audio-skip" src="audio/skip_word.mp3" preload="auto"></audio>
+    <audio id="audio-timesup" src="audio/times_up.mp3" preload="auto"></audio>
+
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

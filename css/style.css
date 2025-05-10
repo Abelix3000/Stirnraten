@@ -1,0 +1,268 @@
+/* css/style.css */
+:root {
+    --primary-color: #4A90E2; /* Blue */
+    --secondary-color: #50E3C2; /* Teal */
+    --accent-color: #F5A623; /* Orange */
+    --light-text-color: #FFFFFF;
+    --dark-text-color: #333333;
+    --background-color: #F4F4F8;
+    --card-background: #FFFFFF;
+    --success-color: #7ED321; /* Green */
+    --pass-color: #F8E71C; /* Yellow */
+    --font-family: 'Arial', sans-serif; /* Clear font */
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--background-color);
+    color: var(--dark-text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    text-align: center;
+    overflow: hidden; /* Prevent scrollbars during transitions or if content is too big */
+    -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+}
+
+.screen {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    width: 100%;
+    max-width: 600px; /* Max width for larger screens, but it's mobile first */
+    min-height: 80vh; /* Ensure screen content is visible */
+    background-color: var(--card-background);
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.screen.active {
+    display: flex;
+}
+
+h1, h2, h3 {
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 2.5em;
+}
+
+h2 {
+    font-size: 2em;
+}
+
+.btn {
+    background-color: var(--primary-color);
+    color: var(--light-text-color);
+    border: none;
+    padding: 15px 30px;
+    margin: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: background-color 0.3s ease;
+    min-width: 200px;
+}
+
+.btn:hover, .btn:focus {
+    background-color: #357ABD; /* Darker shade of primary */
+    outline: none;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+}
+
+.btn-secondary:hover, .btn-secondary:focus {
+    background-color: #40C1A2; /* Darker shade of secondary */
+}
+
+#category-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.category-btn {
+    background-color: var(--accent-color);
+    min-width: 150px; /* Adjust as needed */
+}
+.category-btn:hover, .category-btn:focus {
+    background-color: #D98E1C; /* Darker shade of accent */
+}
+
+#timer-selection-screen .timer-options {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.timer-btn {
+    background-color: var(--secondary-color);
+}
+.timer-btn:hover, .timer-btn:focus {
+    background-color: #40C1A2;
+}
+.timer-btn.selected {
+    background-color: var(--primary-color);
+    box-shadow: 0 0 10px var(--primary-color);
+}
+
+
+#countdown-screen #countdown-timer {
+    font-size: 5em;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+#initial-orientation-instruction {
+    font-size: 1.2em;
+    margin-bottom: 30px;
+    color: var(--dark-text-color);
+}
+
+#game-screen {
+    background-color: var(--primary-color); /* Full screen color during game */
+    color: var(--light-text-color);
+    justify-content: space-around; /* Pushes timer to top, word to center, instructions to bottom */
+}
+
+#game-screen h1, #game-screen h2, #game-screen h3 {
+    color: var(--light-text-color);
+}
+
+#game-timer-display {
+    font-size: 2.5em;
+    font-weight: bold;
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+#word-display {
+    font-size: 4em; /* Make word very large */
+    font-weight: bold;
+    padding: 20px;
+    background-color: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    min-width: 80%;
+    word-wrap: break-word; /* Handle long words */
+}
+
+.game-instructions {
+    font-size: 1em;
+    padding: 10px;
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 5px;
+}
+.game-instructions p {
+    margin: 5px 0;
+}
+
+#summary-screen ul {
+    list-style-type: none;
+    padding: 0;
+    margin-bottom: 20px;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 80%;
+    background-color: var(--background-color);
+    border-radius: 5px;
+    padding: 10px;
+}
+
+#summary-screen li {
+    padding: 5px;
+    border-bottom: 1px solid #eee;
+    color: var(--dark-text-color);
+}
+#summary-screen li:last-child {
+    border-bottom: none;
+}
+
+#final-score {
+    font-weight: bold;
+    font-size: 1.5em;
+    color: var(--success-color);
+}
+
+.permission-request-info {
+    font-size: 0.9em;
+    margin-bottom: 10px;
+    color: #666;
+}
+
+#request-permission-btn {
+    background-color: var(--accent-color);
+}
+
+/* Screen flash animations */
+@keyframes flash-correct {
+    0% { background-color: var(--success-color); }
+    100% { background-color: var(--primary-color); } /* Return to game screen base color */
+}
+
+@keyframes flash-skip {
+    0% { background-color: var(--pass-color); }
+    100% { background-color: var(--primary-color); } /* Return to game screen base color */
+}
+
+.screen-flash-correct {
+    animation: flash-correct 0.3s ease-out;
+}
+
+.screen-flash-skip {
+    animation: flash-skip 0.3s ease-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    body {
+        font-size: 14px; /* Base font size for smaller screens */
+    }
+    h1 { font-size: 2em; }
+    h2 { font-size: 1.8em; }
+    .btn { padding: 12px 24px; font-size: 1em; }
+    #word-display { font-size: 3em; }
+    #countdown-screen #countdown-timer { font-size: 4em; }
+    #game-timer-display { font-size: 2em; }
+
+    .screen {
+        min-height: 100vh; /* Full viewport height on mobile */
+        border-radius: 0;
+        box-shadow: none;
+    }
+}
+
+/* Simple flash animations for correct/skip feedback */
+.flash-correct {
+    animation: flashGreen 0.5s ease-out;
+}
+@keyframes flashGreen {
+    0% { background-color: var(--primary-color); } /* Assuming game screen is primary */
+    50% { background-color: var(--success-color); }
+    100% { background-color: var(--primary-color); }
+}
+
+.flash-skip {
+    animation: flashYellow 0.5s ease-out;
+}
+@keyframes flashYellow {
+    0% { background-color: var(--primary-color); }
+    50% { background-color: var(--pass-color); }
+    100% { background-color: var(--primary-color); }
+}
