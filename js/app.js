@@ -44,6 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let wakeLock = null;
     let actionTakenForCurrentWord = false;
     let motionPermissionGranted = false;
+    let currentDeviceOrientationListener = null; // Variable to hold the current listener
+    let lastBetaForDebounce = 0; // For debouncing tilt events
 
     const TILT_THRESHOLD_DOWN = 85; // Degrees for correct, significantly increased
     const TILT_THRESHOLD_UP = -85;  // Degrees for skip, significantly increased
@@ -197,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
             countdown--;
             displays.countdownTimer.textContent = countdown;
             if (countdown > 0) {
-                // Removed audio.countdown.play() from here to only have one beep at the start
+                try { audio.countdown.play(); } catch(e) { console.warn("Audio play failed for countdown interval sound:", e); } // Play on each subsequent second
             } else {
                 clearInterval(timerInterval);
                 timerInterval = null; // Good practice to nullify cleared interval IDs
@@ -212,6 +214,17 @@ document.addEventListener('DOMContentLoaded', () => {
             showScreen('start'); // Go back to start to request permission
             return;
         }
+        // Attempt to lock screen orientation
+        try {
+            if (screen.orientation && typeof screen.orientation.lock === 'function') {
+                await screen.orientation.lock('landscape-primary');
+                console.log('Screen orientation locked to landscape-primary.');
+            }
+        } catch (err) {
+            console.warn('Screen orientation lock failed:', err.message);
+            // Continue game even if lock fails
+        }
+
         showScreen('game');
         timeLeft = gameDuration;
         updateGameTimerDisplay();
@@ -260,6 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentWordIndex < wordList.length) {
             displays.word.textContent = wordList[currentWordIndex];
             actionTakenForCurrentWord = false; // Reset action flag for the new word
+            currentWordIndex++; // Increment to get the NEXT word next time
         } else {
             displays.word.textContent = "Alle Wörter gespielt!";
             if (timeLeft > 0) { // If time still left but words ran out
@@ -288,21 +302,28 @@ document.addEventListener('DOMContentLoaded', () => {
             // Maybe show an error on game screen?
             return;
         }
+        // Remove existing listener before adding a new one, if any
+        if (currentDeviceOrientationListener) {
+            stopDeviceMotionListener(); 
+        }
+        lastBetaForDebounce = 0; // Reset lastBeta for new listening session
+
         // Using DeviceOrientationEvent for beta angle
         if (window.DeviceOrientationEvent) {
-            let deviceOrientationListener = (event) => {
-                // Basic debouncing or rate limiting could be added here if needed
-                // For example, only process if beta changed significantly from lastBeta
-                let lastBeta = 0;
-                if (Math.abs(event.beta - lastBeta) > 5) { // Only process if change is > 5 degrees
+            currentDeviceOrientationListener = (event) => {
+                if (event.beta === null) return; // Some devices might send null beta initially
+                
+                // Debounce based on significant change in beta
+                if (Math.abs(event.beta - lastBetaForDebounce) > 5) { 
                     handleTilt(event);
-                    lastBeta = event.beta;
-                } else if (lastBeta === 0 && event.beta !== 0) { // Initial event
+                    lastBetaForDebounce = event.beta;
+                } else if (lastBetaForDebounce === 0 && event.beta !== 0) { // Handle initial event if beta is not 0
                     handleTilt(event);
-                    lastBeta = event.beta;
+                    lastBetaForDebounce = event.beta;
                 }
             };
-            window.addEventListener('deviceorientation', deviceOrientationListener, true);
+            window.addEventListener('deviceorientation', currentDeviceOrientationListener, true);
+            console.log("Device motion listener started.");
         } else {
             displays.word.textContent = "Sensor nicht unterstützt!";
             console.error("DeviceOrientationEvent nicht unterstützt.");
@@ -310,7 +331,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function stopDeviceMotionListener() {
-        window.removeEventListener('deviceorientation', deviceOrientationListener, true);
+        if (currentDeviceOrientationListener) {
+            window.removeEventListener('deviceorientation', currentDeviceOrientationListener, true);
+            currentDeviceOrientationListener = null; // Clear the stored listener
+            console.log("Device motion listener stopped.");
+        }
     }
 
     function handleTilt(event) {
@@ -329,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     actionTakenForCurrentWord = true;
                     isActionOnCooldown = true;
                     score++;
-                    correctWords.push(wordList[currentWordIndex]);
+                    correctWords.push(wordList[currentWordIndex]); // Use currentWordIndex before it's incremented by displayNextWord
                     try { audio.correct.play(); } catch(e) { console.warn("Audio play failed for correct sound:", e); }
                     flashScreenFeedback('correct');
                     setTimeout(() => {
@@ -360,16 +385,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function endGame() {
-        clearInterval(timerInterval);
         stopDeviceMotionListener();
-        try { audio.timesup.play(); } catch(e) { console.warn("Audio play failed", e); }
-        
-        if (wakeLock !== null) {
-            wakeLock.release();
-            wakeLock = null;
-            console.log('Wake Lock wurde freigegeben.');
+        if (wakeLock) {
+            wakeLock.release().then(() => {
+                wakeLock = null;
+                console.log('Screen Wake Lock released.');
+            }).catch(err => console.error('Error releasing Wake Lock:', err));
+        }
+        // Attempt to unlock screen orientation
+        if (screen.orientation && typeof screen.orientation.unlock === 'function') {
+            try {
+                 screen.orientation.unlock();
+                 console.log('Screen orientation unlocked.');
+            } catch (err) {
+                console.warn('Screen orientation unlock failed:', err.message);
+            }
         }
 
+        clearInterval(timerInterval);
+        timerInterval = null;
+        try { audio.timesup.play(); } catch(e) { console.warn("Audio play failed", e); }
+        
         displays.finalScore.textContent = score;
         displays.correctWordsList.innerHTML = ''; // Clear previous list
         if (correctWords.length > 0) {
