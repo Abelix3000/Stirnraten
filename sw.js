@@ -1,26 +1,22 @@
-const CACHE_NAME = 'stirnraten-cache-v1';
+const CACHE_NAME = 'stirnraten-cache-v1.4'; // Increment version for updates
 const URLS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/css/style.css',
-  '/js/app.js',
-  '/js/data.js',
-  '/manifest.json',
-  // --- IMPORTANT: Uncomment and ensure these paths are correct once icon files are added ---
-  '/icons/icon-72x72.png',
-  '/icons/icon-96x96.png',
-  '/icons/icon-128x128.png',
-  '/icons/icon-144x144.png',
-  '/icons/icon-152x152.png',
-  '/icons/icon-192x192.png',
-  '/icons/icon-384x384.png',
-  '/icons/icon-512x512.png',
-  // --- IMPORTANT: Uncomment and ensure these paths are correct once audio files are added ---
-  '/audio/beep.mp3',
-  '/audio/correct.mp3',
-  '/audio/skip.mp3',
-  '/audio/times_up.mp3'
-  // Add other assets like fonts if you have them
+  './', // Represents the root of the PWA's scope (e.g., /Stirnraten/)
+  './index.html',
+  './css/style.css',
+  './js/app.js',
+  './js/gameData.js',
+  './audio/beep.mp3',
+  './audio/correct.mp3',
+  './audio/skip.mp3',
+  './audio/times_up.mp3',
+  './icons/icon-72x72.png',
+  './icons/icon-96x96.png',
+  './icons/icon-128x128.png',
+  './icons/icon-144x144.png',
+  './icons/icon-152x152.png',
+  './icons/icon-192x192.png',
+  './icons/icon-384x384.png',
+  './icons/icon-512x512.png'
 ];
 
 self.addEventListener('install', event => {
