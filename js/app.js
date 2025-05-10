@@ -12,8 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const buttons = {
         requestPermission: document.getElementById('request-permission-btn'),
         startSetup: document.getElementById('start-setup-btn'),
-        categoryContainer: document.getElementById('category-buttons-container'),
-        randomAll: document.getElementById('random-all-btn'),
+        categoryContainer: document.getElementById('category-buttons-container'), 
         playAgain: document.getElementById('play-again-btn'),
         changeCategory: document.getElementById('change-category-btn'),
     };
@@ -35,29 +34,27 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let currentCategory = '';
-    let gameDuration = 60; // Default, seconds
+    let gameDuration = 60; 
     let wordList = [];
     let currentWordIndex = 0;
     let score = 0;
     let correctWords = [];
-    let timerInterval = null; // Holds the reference to game and countdown intervals
+    let timerInterval = null; 
     let timeLeft = 0;
     let wakeLock = null;
     let motionPermissionGranted = false;
     let currentDeviceOrientationListener = null;
     
-    // Tilt mechanic states and constants
-    let tiltState; // WAITING_FOR_TILT, ACTION_TAKEN_COOLDOWN, WAITING_FOR_NEUTRAL_RETURN
-    const TILT_THRESHOLD_DOWN = 75; // Degrees for correct (a bit less than 85 for usability)
-    const TILT_THRESHOLD_UP = -75;  // Degrees for skip (a bit less than -85 for usability)
-    const NEUTRAL_ZONE_BUFFER = 20; // Degrees around 0 (flat) to be considered neutral. Increased for stability.
-    const HARDWARE_COOLDOWN_MS = 250; // Short cooldown after an action is registered, before displaying next word.
+    let tiltState; 
+    const TILT_THRESHOLD_DOWN = 75; 
+    const TILT_THRESHOLD_UP = -75;  
+    const NEUTRAL_ZONE_BUFFER = 20; 
+    const HARDWARE_COOLDOWN_MS = 250; 
 
     function showScreen(screenName) {
         Object.values(screens).forEach(screen => screen.classList.remove('active'));
         screens[screenName].classList.add('active');
 
-        // Manage screen orientation based on screen
         if (screenName === 'start' || screenName === 'categorySelection' || screenName === 'timerSelection') {
             if (screen.orientation && typeof screen.orientation.unlock === 'function') {
                 try {
@@ -72,43 +69,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function populateCategories() {
         buttons.categoryContainer.innerHTML = ''; 
-        const allWordsCategory = []; // Create a temporary array for "Alle Begriffe"
+        const allWordsCategory = []; 
         for (const categoryKey in GAME_DATA.kategorien) {
-            allWordsCategory.push(...GAME_DATA.kategorien[categoryKey]); // Add words to "Alle Begriffe"
+            allWordsCategory.push(...GAME_DATA.kategorien[categoryKey]); 
             const btn = document.createElement('button');
             btn.classList.add('btn', 'category-btn');
-            btn.textContent = categoryKey; // Use the key as the button text
+            btn.textContent = categoryKey; 
             btn.addEventListener('click', () => selectCategory(categoryKey));
             buttons.categoryContainer.appendChild(btn);
         }
-        // Add "Alle Begriffe" to GAME_DATA if it doesn't exist, or update it
-        GAME_DATA["Alle Begriffe"] = shuffleArray([...new Set(allWordsCategory)]); // Use Set to ensure unique words
+        GAME_DATA["Alle Begriffe"] = shuffleArray([...new Set(allWordsCategory)]); 
 
-        // Add the "Alle Begriffe" button separately
         const btnAll = document.createElement('button');
-        btnAll.classList.add('btn', 'category-btn', 'random-all-btn'); // Add specific class if needed
+        btnAll.classList.add('btn', 'category-btn', 'random-all-btn'); 
+        btnAll.id = 'random-all-btn'; 
         btnAll.textContent = "Alle Begriffe (Zufall)";
         btnAll.addEventListener('click', () => selectCategory("Alle Begriffe"));
-        buttons.categoryContainer.appendChild(btnAll); // Or prepend if preferred
+        buttons.categoryContainer.appendChild(btnAll); 
     }
     
-    // Remove direct event listener for randomAll if categories are populated dynamically including "Alle Begriffe"
-    // buttons.randomAll.addEventListener('click', () => selectCategory("Alle Begriffe"));
-
     function selectCategory(categoryName) {
-        if (!motionPermissionGranted && needsMotionPermission()) { // Only check if permission is truly needed
+        if (!motionPermissionGranted && needsMotionPermission()) { 
             alert("Bitte erlaube zuerst den Zugriff auf die Bewegungssensoren.");
             showScreen('permission');
             return;
         }
         currentCategory = categoryName;
-        displays.selectedCategoryName.textContent = categoryName; // Update the display for selected category
+        displays.selectedCategoryName.textContent = categoryName; 
 
-        let wordsForCategory = GAME_DATA.kategorien[categoryName] || GAME_DATA[categoryName]; // Handle "Alle Begriffe" which might be at root
+        let wordsForCategory = GAME_DATA.kategorien[categoryName] || GAME_DATA[categoryName]; 
         
         if (!wordsForCategory || wordsForCategory.length === 0) {
             console.warn(`Kategorie "${categoryName}" ist leer oder nicht gefunden.`);
-            // Fallback to "Alle Begriffe" if the selected category is empty, ensure "Alle Begriffe" exists
             if (GAME_DATA["Alle Begriffe"] && GAME_DATA["Alle Begriffe"].length > 0) {
                 console.warn(`Fallback zur Kategorie "Alle Begriffe".`);
                 currentCategory = "Alle Begriffe";
@@ -116,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 wordsForCategory = GAME_DATA["Alle Begriffe"];
             } else {
                 alert(`Die Kategorie "${categoryName}" (und auch "Alle Begriffe") enthält keine Wörter. Bitte überprüfe gameData.js.`);
-                showScreen('categorySelection'); // Go back to category selection
+                showScreen('categorySelection'); 
                 return;
             }
         }
@@ -185,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        tiltState = 'WAITING_FOR_TILT'; // Initialize tilt state
+        tiltState = 'WAITING_FOR_TILT'; 
         console.log("Tilt state initialized to WAITING_FOR_TILT");
 
         try {
@@ -200,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showScreen('game');
         timeLeft = gameDuration;
         updateGameTimerDisplay();
-        displayNextWord(); // Display the first word
+        displayNextWord(); 
 
         if(timerInterval) clearInterval(timerInterval); 
         timerInterval = setInterval(() => {
@@ -228,14 +220,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const word = wordList[currentWordIndex];
             console.log(`Displaying word: ${word}`);
             displays.word.textContent = word;
-            // actionTakenForCurrentWord = false; // REMOVED - Handled by tiltState
         } else {
             displays.word.textContent = "Alle Wörter gespielt!";
             console.log("All words played.");
             if (timeLeft > 0) { 
                 stopDeviceMotionListener(); 
-                 // Consider calling endGame() if all words played and time still remains
-                // For now, just stopping listener. Game will end when timer runs out.
             }
         }
     }
@@ -283,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         switch (tiltState) {
             case 'WAITING_FOR_TILT':
-                if (currentWordIndex >= wordList.length) break; // No more words
+                if (currentWordIndex >= wordList.length) break; 
 
                 if (beta > TILT_THRESHOLD_DOWN) {
                     console.log(`WAITING_FOR_TILT: Tilt DOWN for: ${wordList[currentWordIndex]}`);
@@ -296,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log(`Transitioning to ACTION_TAKEN_COOLDOWN (Correct)`);
 
                     setTimeout(() => {
-                        currentWordIndex++; // Advance word index AFTER action
+                        currentWordIndex++; 
                         displayNextWord(); 
                         tiltState = 'WAITING_FOR_NEUTRAL_RETURN';
                         console.log(`ACTION_TAKEN_COOLDOWN (Correct) finished. Displayed next word. Transitioning to WAITING_FOR_NEUTRAL_RETURN.`);
@@ -311,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log(`Transitioning to ACTION_TAKEN_COOLDOWN (Skip)`);
 
                     setTimeout(() => {
-                        currentWordIndex++; // Advance word index AFTER action
+                        currentWordIndex++; 
                         displayNextWord();
                         tiltState = 'WAITING_FOR_NEUTRAL_RETURN';
                         console.log(`ACTION_TAKEN_COOLDOWN (Skip) finished. Displayed next word. Transitioning to WAITING_FOR_NEUTRAL_RETURN.`);
@@ -320,7 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
 
             case 'ACTION_TAKEN_COOLDOWN':
-                // Do nothing, wait for timeout to transition.
                 break;
 
             case 'WAITING_FOR_NEUTRAL_RETURN':
@@ -368,13 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     buttons.playAgain.addEventListener('click', () => {
-        // Re-select category and timer will eventually call startGame
-        // which re-initializes words and score.
-        // For simplicity, just go back to category selection to re-trigger flow.
-        // Or, if you want to play same category and time:
-        // selectCategory(currentCategory); // This re-shuffles
-        // selectGameDuration(gameDuration.toString()); // This starts countdown
-        showScreen('categorySelection'); // Simplest way to restart flow
+        showScreen('categorySelection'); 
     });
 
     buttons.changeCategory.addEventListener('click', () => {
@@ -431,7 +413,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         motionPermissionGranted = true;
                         console.log("Device motion permission granted.");
                         showScreen('start'); 
-                        // Hide permission button and info, show start setup button
                         buttons.requestPermission.style.display = 'none';
                         document.querySelector('.permission-request-info').style.display = 'none';
                         buttons.startSetup.style.display = 'inline-block';
@@ -445,7 +426,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         } else {
-            // Not on iOS 13+ or permission not required by browser
             motionPermissionGranted = true;
             console.log("Device motion permission not required or already handled.");
             buttons.requestPermission.style.display = 'none';
@@ -453,18 +433,16 @@ document.addEventListener('DOMContentLoaded', () => {
             buttons.startSetup.style.display = 'inline-block';
         }
         
-        // Ensure startSetup button leads to category selection
         buttons.startSetup.addEventListener('click', () => {
             if (!motionPermissionGranted && needsMotionPermission()) {
-                showScreen('permission'); // Should not happen if button logic is correct
+                showScreen('permission');
             } else {
                 showScreen('categorySelection');
             }
         });
 
         populateCategories();
-        // Show permission screen first if needed, otherwise start screen
-        if (needsMotionPermission() && !motionPermissionGranted) { // Check initial state
+        if (needsMotionPermission() && !motionPermissionGranted) {
             showScreen('permission');
         } else {
             showScreen('start');
@@ -474,10 +452,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
 });
 
-// Service Worker Registration - (Keep this as is from your working version)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js') // Ensure path is correct for gh-pages
+        navigator.serviceWorker.register('./sw.js') 
             .then(registration => {
                 console.log('ServiceWorker registration successful with scope: ', registration.scope);
             })
