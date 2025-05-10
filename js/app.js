@@ -45,10 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let actionTakenForCurrentWord = false;
     let motionPermissionGranted = false;
 
-    const TILT_THRESHOLD_DOWN = 45; // Degrees for correct
-    const TILT_THRESHOLD_UP = -45; // Degrees for skip
+    const TILT_THRESHOLD_DOWN = 60; // Degrees for correct
+    const TILT_THRESHOLD_UP = -60; // Degrees for skip
     const NEUTRAL_ZONE_BUFFER = 15; // Degrees around 0 to ignore (reduce sensitivity near flat)
-
+    const ACTION_COOLDOWN_MS = 750; // Milliseconds to wait before processing another tilt action
+    let isActionOnCooldown = false;
 
     function showScreen(screenName) {
         Object.values(screens).forEach(screen => screen.classList.remove('active'));
@@ -313,29 +314,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleTilt(event) {
-        if (actionTakenForCurrentWord || timeLeft <= 0) return;
+        if (!motionPermissionGranted || !screens.game.classList.contains('active') || isActionOnCooldown) {
+            return;
+        }
 
-        // For forehead-mounted horizontal phone:
-        // Beta: front-back tilt. Positive beta = top edge tilts away from face (screen down)
-        // Negative beta = top edge tilts towards face (screen up)
-        const beta = event.beta; 
+        const beta = event.beta; // Front-to-back tilt
+        // Optional: Add gamma handling if needed for side-to-side, though beta is typical for this gesture
 
-        if (beta > TILT_THRESHOLD_DOWN) {
-            actionTakenForCurrentWord = true;
-            screens.game.classList.add('flash-correct');
-            setTimeout(() => screens.game.classList.remove('flash-correct'), 500);
-            try { audio.correct.play(); } catch(e) { console.warn("Audio play failed", e); }
-            score++;
-            correctWords.push(wordList[currentWordIndex]);
-            currentWordIndex++;
-            displayNextWord();
-        } else if (beta < TILT_THRESHOLD_UP) {
-            actionTakenForCurrentWord = true;
-            screens.game.classList.add('flash-skip');
-            setTimeout(() => screens.game.classList.remove('flash-skip'), 500);
-            try { audio.skip.play(); } catch(e) { console.warn("Audio play failed", e); }
-            currentWordIndex++;
-            displayNextWord();
+        // Check if tilt is outside the neutral zone before considering action
+        if (beta > NEUTRAL_ZONE_BUFFER || beta < -NEUTRAL_ZONE_BUFFER) {
+            if (!actionTakenForCurrentWord) {
+                if (beta > TILT_THRESHOLD_DOWN) {
+                    // Tilt down (forward) - Correct
+                    actionTakenForCurrentWord = true;
+                    isActionOnCooldown = true;
+                    score++;
+                    correctWords.push(wordList[currentWordIndex]);
+                    try { audio.correct.play(); } catch(e) { console.warn("Audio play failed", e); }
+                    flashScreenFeedback('correct');
+                    setTimeout(() => {
+                        displayNextWord();
+                        isActionOnCooldown = false;
+                    }, ACTION_COOLDOWN_MS); 
+                } else if (beta < TILT_THRESHOLD_UP) {
+                    // Tilt up (backward) - Skip
+                    actionTakenForCurrentWord = true;
+                    isActionOnCooldown = true;
+                    try { audio.skip.play(); } catch(e) { console.warn("Audio play failed", e); }
+                    flashScreenFeedback('skip');
+                    setTimeout(() => {
+                        displayNextWord();
+                        isActionOnCooldown = false;
+                    }, ACTION_COOLDOWN_MS);
+                }
+            }
+        } else {
+            // Device is relatively flat, reset flag
+            actionTakenForCurrentWord = false;
         }
     }
 
