@@ -45,13 +45,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let actionTakenForCurrentWord = false;
     let motionPermissionGranted = false;
     let currentDeviceOrientationListener = null; // Variable to hold the current listener
-    let lastBetaForDebounce = 0; // For debouncing tilt events
+    let isActionOnCooldown = false;
 
     const TILT_THRESHOLD_DOWN = 85; // Degrees for correct, significantly increased
     const TILT_THRESHOLD_UP = -85;  // Degrees for skip, significantly increased
     const NEUTRAL_ZONE_BUFFER = 15; // Degrees around 0 to ignore
     const ACTION_COOLDOWN_MS = 750; // Milliseconds to wait before processing another tilt action
-    let isActionOnCooldown = false;
 
     function showScreen(screenName) {
         Object.values(screens).forEach(screen => screen.classList.remove('active'));
@@ -321,24 +320,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentDeviceOrientationListener) {
             stopDeviceMotionListener(); 
         }
-        lastBetaForDebounce = 0; // Reset lastBeta for new listening session
 
-        // Using DeviceOrientationEvent for beta angle
         if (window.DeviceOrientationEvent) {
             currentDeviceOrientationListener = (event) => {
                 if (event.beta === null) return; // Some devices might send null beta initially
-                
-                // Debounce based on significant change in beta
-                if (Math.abs(event.beta - lastBetaForDebounce) > 5) { 
-                    handleTilt(event);
-                    lastBetaForDebounce = event.beta;
-                } else if (lastBetaForDebounce === 0 && event.beta !== 0) { // Handle initial event if beta is not 0
-                    handleTilt(event);
-                    lastBetaForDebounce = event.beta;
-                }
+                handleTilt(event); // Call handleTilt directly with the event data
             };
             window.addEventListener('deviceorientation', currentDeviceOrientationListener, true);
-            console.log("Device motion listener started.");
+            console.log("Device motion listener started. Raw events passed to handleTilt.");
         } else {
             displays.word.textContent = "Sensor nicht unterstützt!";
             console.error("DeviceOrientationEvent nicht unterstützt.");
@@ -354,51 +343,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleTilt(event) {
-        if (!motionPermissionGranted || !screens.game.classList.contains('active') || isActionOnCooldown) {
-            return;
-        }
-
         const beta = event.beta; // Front-to-back tilt
-        // Optional: Add gamma handling if needed for side-to-side, though beta is typical for this gesture
+
+        if (actionTakenForCurrentWord || isActionOnCooldown) {
+            return; // Already processed an action for this word or in cooldown
+        }
 
         // Check if tilt is outside the neutral zone before considering action
         if (beta > NEUTRAL_ZONE_BUFFER || beta < -NEUTRAL_ZONE_BUFFER) {
-            if (!actionTakenForCurrentWord) {
-                if (beta > TILT_THRESHOLD_DOWN) {
-                    // Tilt down (forward) - Correct
-                    actionTakenForCurrentWord = true;
-                    isActionOnCooldown = true;
-                    score++;
-                    correctWords.push(wordList[currentWordIndex]); // Use currentWordIndex before it's incremented by displayNextWord
-                    try { audio.correct.play(); } catch(e) { console.warn("Audio play failed for correct sound:", e); }
-                    flashScreenFeedback('correct');
-                    console.log(`Correct action for: ${wordList[currentWordIndex]}. Cooldown starting.`);
-                    setTimeout(() => {
-                        console.log("Cooldown ended. Calling displayNextWord.");
-                        actionTakenForCurrentWord = false; // Reset before next word and cooldown end
-                        displayNextWord();
-                        isActionOnCooldown = false;
-                    }, ACTION_COOLDOWN_MS); 
-                } else if (beta < TILT_THRESHOLD_UP) {
-                    // Tilt up (backward) - Skip
-                    actionTakenForCurrentWord = true;
-                    isActionOnCooldown = true;
-                    try { audio.skip.play(); } catch(e) { console.warn("Audio play failed for skip sound:", e); }
-                    flashScreenFeedback('skip');
-                    console.log(`Skip action for: ${wordList[currentWordIndex]}. Cooldown starting.`);
-                    setTimeout(() => {
-                        console.log("Cooldown ended. Calling displayNextWord.");
-                        actionTakenForCurrentWord = false; // Reset before next word and cooldown end
-                        displayNextWord();
-                        isActionOnCooldown = false;
-                    }, ACTION_COOLDOWN_MS);
-                }
-            }
-        } else {
-            // Device is relatively flat, reset flag IF NOT IN COOLDOWN. 
-            // If in cooldown, actionTakenForCurrentWord will be reset by the setTimeout.
-            if (!isActionOnCooldown) {
-                 actionTakenForCurrentWord = false;
+            if (beta > TILT_THRESHOLD_DOWN) {
+                // Tilt down (forward) - Correct
+                actionTakenForCurrentWord = true;
+                isActionOnCooldown = true;
+                score++;
+                correctWords.push(wordList[currentWordIndex]); 
+                try { audio.correct.play(); } catch(e) { console.warn("Audio play failed for correct sound:", e); }
+                flashScreenFeedback('correct');
+                console.log(`Correct action for: ${wordList[currentWordIndex]}. Cooldown starting.`);
+                setTimeout(() => {
+                    console.log("Correct action cooldown ended.");
+                    // displayNextWord() will set actionTakenForCurrentWord = false for the new word
+                    displayNextWord(); 
+                    isActionOnCooldown = false;
+                }, ACTION_COOLDOWN_MS); 
+            } else if (beta < TILT_THRESHOLD_UP) {
+                // Tilt up (backward) - Skip
+                actionTakenForCurrentWord = true;
+                isActionOnCooldown = true;
+                try { audio.skip.play(); } catch(e) { console.warn("Audio play failed for skip sound:", e); }
+                flashScreenFeedback('skip');
+                console.log(`Skip action for: ${wordList[currentWordIndex]}. Cooldown starting.`);
+                setTimeout(() => {
+                    console.log("Skip action cooldown ended.");
+                    // displayNextWord() will set actionTakenForCurrentWord = false for the new word
+                    displayNextWord();
+                    isActionOnCooldown = false;
+                }, ACTION_COOLDOWN_MS);
             }
         }
     }
