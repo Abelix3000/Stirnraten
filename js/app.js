@@ -45,9 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let actionTakenForCurrentWord = false;
     let motionPermissionGranted = false;
 
-    const TILT_THRESHOLD_DOWN = 60; // Degrees for correct
-    const TILT_THRESHOLD_UP = -60; // Degrees for skip
-    const NEUTRAL_ZONE_BUFFER = 15; // Degrees around 0 to ignore (reduce sensitivity near flat)
+    const TILT_THRESHOLD_DOWN = 85; // Degrees for correct, significantly increased
+    const TILT_THRESHOLD_UP = -85;  // Degrees for skip, significantly increased
+    const NEUTRAL_ZONE_BUFFER = 15; // Degrees around 0 to ignore
     const ACTION_COOLDOWN_MS = 750; // Milliseconds to wait before processing another tilt action
     let isActionOnCooldown = false;
 
@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showScreen('countdown');
         let countdown = 3;
         displays.countdownTimer.textContent = countdown;
-        try { audio.countdown.play(); } catch(e) { console.warn("Audio play failed", e); }
+        try { audio.countdown.play(); } catch(e) { console.warn("Audio play failed for initial countdown sound:", e); } // Play once at the start
         
         // Clear any existing interval to prevent multiple countdowns
         if(timerInterval) clearInterval(timerInterval);
@@ -197,10 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
             countdown--;
             displays.countdownTimer.textContent = countdown;
             if (countdown > 0) {
-                try { audio.countdown.play(); } catch(e) { console.warn("Audio play failed", e); }
+                // Removed audio.countdown.play() from here to only have one beep at the start
             } else {
                 clearInterval(timerInterval);
-                timerInterval = null;
+                timerInterval = null; // Good practice to nullify cleared interval IDs
                 startGame();
             }
         }, 1000);
@@ -330,9 +330,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     isActionOnCooldown = true;
                     score++;
                     correctWords.push(wordList[currentWordIndex]);
-                    try { audio.correct.play(); } catch(e) { console.warn("Audio play failed", e); }
+                    try { audio.correct.play(); } catch(e) { console.warn("Audio play failed for correct sound:", e); }
                     flashScreenFeedback('correct');
                     setTimeout(() => {
+                        actionTakenForCurrentWord = false; // Reset before next word and cooldown end
                         displayNextWord();
                         isActionOnCooldown = false;
                     }, ACTION_COOLDOWN_MS); 
@@ -340,17 +341,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Tilt up (backward) - Skip
                     actionTakenForCurrentWord = true;
                     isActionOnCooldown = true;
-                    try { audio.skip.play(); } catch(e) { console.warn("Audio play failed", e); }
+                    try { audio.skip.play(); } catch(e) { console.warn("Audio play failed for skip sound:", e); }
                     flashScreenFeedback('skip');
                     setTimeout(() => {
+                        actionTakenForCurrentWord = false; // Reset before next word and cooldown end
                         displayNextWord();
                         isActionOnCooldown = false;
                     }, ACTION_COOLDOWN_MS);
                 }
             }
         } else {
-            // Device is relatively flat, reset flag
-            actionTakenForCurrentWord = false;
+            // Device is relatively flat, reset flag IF NOT IN COOLDOWN. 
+            // If in cooldown, actionTakenForCurrentWord will be reset by the setTimeout.
+            if (!isActionOnCooldown) {
+                 actionTakenForCurrentWord = false;
+            }
         }
     }
 
